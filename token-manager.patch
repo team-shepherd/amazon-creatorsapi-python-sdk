@@ -1,0 +1,72 @@
+diff --git a/creatorsapi_python_sdk/api_client.py b/creatorsapi_python_sdk/api_client.py
+index 63f203d..be12dd1 100644
+--- a/creatorsapi_python_sdk/api_client.py
++++ b/creatorsapi_python_sdk/api_client.py
+@@ -90,7 +90,8 @@ class ApiClient:
+         credential_secret: Optional[str] = None,
+         version: Optional[str] = None,
+         host="https://creatorsapi.amazon",
+-        auth_endpoint: Optional[str] = None
++        auth_endpoint: Optional[str] = None,
++        oauth_token_manager_requests_kwargs: Optional[dict] = None
+     ) -> None:
+         # use default configuration if none is provided
+         if configuration is None:
+@@ -117,6 +118,7 @@ class ApiClient:
+         self._auth_endpoint: Optional[str] = auth_endpoint
+         
+         # OAuth2 token manager - reused across requests for token caching
++        self.oauth_token_manager_requests_kwargs = oauth_token_manager_requests_kwargs
+         self._token_manager: Optional[OAuth2TokenManager] = None
+         self._token_manager_lock: threading.Lock = threading.Lock()
+ 
+@@ -384,7 +386,7 @@ class ApiClient:
+                             self.credential_id, self.credential_secret,
+                             self.version, self.auth_endpoint
+                         )
+-                        self._token_manager = OAuth2TokenManager(config)
++                        self._token_manager = OAuth2TokenManager(config, requests_kwargs=self.oauth_token_manager_requests_kwargs)
+             # Get token (will use cached token if valid)
+             token = self._token_manager.get_token()
+             # Add Authorization headers - Version only for v2.x
+diff --git a/creatorsapi_python_sdk/auth/oauth2_token_manager.py b/creatorsapi_python_sdk/auth/oauth2_token_manager.py
+index 7a730fa..0f0523b 100644
+--- a/creatorsapi_python_sdk/auth/oauth2_token_manager.py
++++ b/creatorsapi_python_sdk/auth/oauth2_token_manager.py
+@@ -30,7 +30,7 @@ import json
+ class OAuth2TokenManager:
+     """Manages OAuth2 token lifecycle including acquisition, caching, and automatic refresh"""
+ 
+-    def __init__(self, config):
++    def __init__(self, config, requests_kwargs=None):
+         """
+         Creates an OAuth2TokenManager instance
+         
+@@ -39,6 +39,7 @@ class OAuth2TokenManager:
+         self.config = config
+         self.access_token = None
+         self.expires_at = None
++        self.requests_kwargs = requests_kwargs or {}
+ 
+     def get_token(self):
+         """
+@@ -79,7 +80,8 @@ class OAuth2TokenManager:
+                 response = requests.post(
+                     self.config.get_cognito_endpoint(),
+                     json=request_data,
+-                    headers=headers
++                    headers=headers,
++                    **self.requests_kwargs
+                 )
+             else:
+                 # Cognito (v2.x) uses form-encoded
+@@ -93,7 +95,8 @@ class OAuth2TokenManager:
+                 response = requests.post(
+                     self.config.get_cognito_endpoint(),
+                     data=request_data,
+-                    headers=headers
++                    headers=headers,
++                    **self.requests_kwargs
+                 )
+ 
+             if response.status_code != 200:

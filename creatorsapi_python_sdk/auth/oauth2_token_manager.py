@@ -30,7 +30,7 @@ import json
 class OAuth2TokenManager:
     """Manages OAuth2 token lifecycle including acquisition, caching, and automatic refresh"""
 
-    def __init__(self, config):
+    def __init__(self, config, requests_kwargs=None):
         """
         Creates an OAuth2TokenManager instance
         
@@ -39,6 +39,7 @@ class OAuth2TokenManager:
         self.config = config
         self.access_token = None
         self.expires_at = None
+        self.requests_kwargs = requests_kwargs or {}
 
     def get_token(self):
         """
@@ -79,7 +80,8 @@ class OAuth2TokenManager:
                 response = requests.post(
                     self.config.get_cognito_endpoint(),
                     json=request_data,
-                    headers=headers
+                    headers=headers,
+                    **self.requests_kwargs
                 )
             else:
                 # Cognito (v2.x) uses form-encoded
@@ -93,7 +95,8 @@ class OAuth2TokenManager:
                 response = requests.post(
                     self.config.get_cognito_endpoint(),
                     data=request_data,
-                    headers=headers
+                    headers=headers,
+                    **self.requests_kwargs
                 )
 
             if response.status_code != 200:

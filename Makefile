@@ -5,3 +5,4 @@ update:
 	unzip -o creatorsapi-python-sdk.zip
 	mv creatorsapi-python-sdk/* .
 	rm -rf creatorsapi-python-sdk.zip creatorsapi-python-sdk
+	patch < token-manager.patch

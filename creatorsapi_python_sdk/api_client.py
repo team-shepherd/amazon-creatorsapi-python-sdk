@@ -90,7 +90,8 @@ class ApiClient:
         credential_secret: Optional[str] = None,
         version: Optional[str] = None,
         host="https://creatorsapi.amazon",
-        auth_endpoint: Optional[str] = None
+        auth_endpoint: Optional[str] = None,
+        oauth_token_manager_requests_kwargs: Optional[dict] = None
     ) -> None:
         # use default configuration if none is provided
         if configuration is None:
@@ -117,6 +118,7 @@ class ApiClient:
         self._auth_endpoint: Optional[str] = auth_endpoint
         
         # OAuth2 token manager - reused across requests for token caching
+        self.oauth_token_manager_requests_kwargs = oauth_token_manager_requests_kwargs
         self._token_manager: Optional[OAuth2TokenManager] = None
         self._token_manager_lock: threading.Lock = threading.Lock()
 
@@ -384,7 +386,7 @@ class ApiClient:
                             self.credential_id, self.credential_secret,
                             self.version, self.auth_endpoint
                         )
-                        self._token_manager = OAuth2TokenManager(config)
+                        self._token_manager = OAuth2TokenManager(config, requests_kwargs=self.oauth_token_manager_requests_kwargs)
             # Get token (will use cached token if valid)
             token = self._token_manager.get_token()
             # Add Authorization headers - Version only for v2.x
